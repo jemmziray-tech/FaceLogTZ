@@ -14,13 +14,15 @@ Designed specifically with local African environments in mind, this system opera
 ## Key Features
 - **100% Offline Capability:** Runs completely locally on the host machine; no external cloud APIs or continuous internet connection required.
 - **Robust Recognition Engine:** Utilizes dynamic folder-scanning to learn multiple angles and lighting conditions for a single identity, increasing match accuracy.
+- **Interactive Voice Assistant:** Integrated `pyttsx3` offline Text-to-Speech engine to provide real-time audio confirmation and student greetings, enhancing the user experience.
 - **Automated Logging:** Automatically generates a time-stamped `.csv` database containing Student Name, Time of Arrival, and Date.
 - **Hardware Optimized:** Incorporates dynamic frame resizing (processing frames at 25% scale) to run smoothly even on older, low-resource school computers.
 
 ## Technology Stack
 - **Python 3.9** - Core runtime environment.
-- **OpenCV (`cv2`)** - For video stream handling, frame manipulation, and GUI rendering.
+- **OpenCV (`cv2`)** - For video stream handling and GUI rendering.
 - **`face_recognition` (dlib)** - Deep learning models for generating 128-dimension facial encodings.
+- **`pyttsx3`** - Cross-platform, offline Text-to-Speech engine.
 - **NumPy** - For mathematical array comparisons and distance calculations.
 
 ## Installation & Setup
