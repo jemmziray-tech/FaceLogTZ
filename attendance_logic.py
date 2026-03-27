@@ -1,11 +1,15 @@
 import cv2
 import face_recognition
 import os
+import pyttsx3
 import numpy as np
 from datetime import datetime
 
 # --- SETTINGS ---
 path = 'known_faces'
+# Initialize Voice Engine
+engine = pyttsx3.init()
+engine.setProperty('rate', 150) # Speed of speech (150 is natural)
 images = []
 classNames = []
 
@@ -71,6 +75,10 @@ def markAttendance(name):
             timeString = now.strftime('%H:%M:%S')
             f.writelines(f'\n{name},{timeString},{dateString}')
             print(f"✅ Attendance logged for: {name}")
+            
+            # THE VOICE ASSISTANT PART:
+            engine.say(f"Welcome {name.lower()}. Your attendance has been recorded.")
+            engine.runAndWait()
 
 # --- STEP 4: WEBCAM LOOP ---
 # Using CAP_DSHOW to prevent Windows from locking the camera!
