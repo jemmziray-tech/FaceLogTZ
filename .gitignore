@@ -1,1 +1,22 @@
+# 🔐 Secrets & API Keys
 .env
+
+# 📂 Attendance Data (Privacy)
+Attendance.csv
+*.csv
+
+# 📸 Face Database (Private Images)
+known_faces/
+*.jpg
+*.png
+*.jpeg
+
+# 🐍 Python junk
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 💻 Virtual Environment
+.venv/
+env/
+venv/
