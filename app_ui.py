@@ -4,6 +4,7 @@ from PIL import Image
 import face_recognition
 import numpy as np
 import os
+import csv
 from datetime import datetime
 import pyttsx3
 import threading
@@ -28,17 +29,48 @@ else:
     print("⚠️ Warning: Twilio credentials not found in .env file.")
 
 
+# --- SMART PHONEBOOK LOGIC ---
+def get_parent_number(student_name):
+    """Searches the parents.csv file for the specific student's phone number."""
+    try:
+        with open("parents.csv", "r") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                # Check if row has data and if the name matches
+                if len(row) >= 2 and row[0].strip().upper() == student_name.upper():
+                    return row[1].strip()  # Return the specific parent's number
+    except FileNotFoundError:
+        print("⚠️ parents.csv not found! Using default fallback number.")
+
+    # Fallback to your main .env TARGET_PHONE if the student isn't in the CSV
+    return TARGET_PHONE
+
+
 def send_whatsapp(name, time_str):
     if twilio_client:
+        # 1. Ask the database for the correct parent number
+        recipient_number = get_parent_number(name)
+        
+        # 2. Grab your sender number
+        sender_number = TWILIO_SENDER
+        
+        # 🛠️ THE FIX: Make sure BOTH numbers have the "whatsapp:" prefix!
+        if not recipient_number.startswith("whatsapp:"):
+            recipient_number = f"whatsapp:{recipient_number}"
+            
+        if not sender_number.startswith("whatsapp:"):
+            sender_number = f"whatsapp:{sender_number}"
+            
         try:
+            # 3. Send the message
             message = twilio_client.messages.create(
-                from_=TWILIO_SENDER,
+                from_=sender_number,
                 body=f"✅ FaceLogTZ Alert: {name.title()} has safely arrived at class at {time_str}.",
-                to=TARGET_PHONE,
+                to=recipient_number,
             )
-            print(f"📱 WhatsApp successfully sent! ID: {message.sid}")
+            print(f"📱 WhatsApp sent to {recipient_number}! ID: {message.sid}")
         except Exception as e:
-            print(f"⚠️ WhatsApp failed to send: {e}")
+            print(f"⚠️ WhatsApp failed to send for {name}: {e}")
 
 
 # --- AUDIO QUEUE SYSTEM ---
@@ -62,7 +94,6 @@ def audio_worker():
 
 # Start the audio worker in the background immediately
 threading.Thread(target=audio_worker, daemon=True).start()
-
 
 # --- UI & LOGIC ---
 ctk.set_appearance_mode("Dark")
@@ -112,6 +143,10 @@ class FaceLogApp(ctk.CTk):
         print("Loading Database...")
         self.classNames = []
         self.encodeListKnown = []
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+            print(f"📁 Created folder '{self.path}'. Please add images here.")
 
         for item_name in os.listdir(self.path):
             item_path = os.path.join(self.path, item_name)
@@ -163,12 +198,10 @@ class FaceLogApp(ctk.CTk):
 
             for line in myDataList:
                 entry = line.strip().split(",")
-                # Make sure the line has enough columns (Name, Time, Date)
                 if len(entry) >= 3:
                     recorded_name = entry[0]
                     recorded_date = entry[2]
 
-                    # If the name AND today's date match, they are already logged!
                     if recorded_name == name and recorded_date == today_date:
                         already_marked_today = True
                         break
@@ -179,9 +212,7 @@ class FaceLogApp(ctk.CTk):
                 print(f"✅ Logged: {name} for {today_date}")
 
                 # --- MULTITHREADING WITH QUEUE ---
-                # 1. Put the name in the audio queue (No overlapping voices)
                 audio_queue.put(name)
-                # 2. Text the parent globally
                 threading.Thread(target=send_whatsapp, args=(name, time_string)).start()
 
     def start_camera(self):
@@ -218,28 +249,30 @@ class FaceLogApp(ctk.CTk):
                     faceDis = face_recognition.face_distance(
                         self.encodeListKnown, encodeFace
                     )
-                    matchIndex = np.argmin(faceDis)
 
-                    if matches[matchIndex]:
-                        name = self.classNames[matchIndex].upper()
+                    if len(faceDis) > 0:
+                        matchIndex = np.argmin(faceDis)
 
-                        y1, x2, y2, x1 = faceLoc
-                        y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
-                        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        cv2.rectangle(
-                            img, (x1, y2 - 35), (x2, y2), (0, 255, 0), cv2.FILLED
-                        )
-                        cv2.putText(
-                            img,
-                            name,
-                            (x1 + 6, y2 - 6),
-                            cv2.FONT_HERSHEY_COMPLEX,
-                            1,
-                            (255, 255, 255),
-                            2,
-                        )
+                        if matches[matchIndex]:
+                            name = self.classNames[matchIndex].upper()
 
-                        self.markAttendance(name)
+                            y1, x2, y2, x1 = faceLoc
+                            y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
+                            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            cv2.rectangle(
+                                img, (x1, y2 - 35), (x2, y2), (0, 255, 0), cv2.FILLED
+                            )
+                            cv2.putText(
+                                img,
+                                name,
+                                (x1 + 6, y2 - 6),
+                                cv2.FONT_HERSHEY_COMPLEX,
+                                1,
+                                (255, 255, 255),
+                                2,
+                            )
+
+                            self.markAttendance(name)
 
                 cv2image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 pil_image = Image.fromarray(cv2image)
