@@ -37,13 +37,16 @@ Smart_Attendance_Project/
 ├── app_ui.py             
 ├── Attendance.csv        
 └── README.md
-           
+```           
 ## ⚙️ Installation & Setup
 
 **1. Clone the repository**
 ```bash
 git clone [https://github.com/jemmziray-tech/FaceLogTZ.git](https://github.com/jemmziray-tech/FaceLogTZ.git)
 cd FaceLogTZ
+```
 **2. Install Dependencies**
+```bash
 pip install opencv-python face_recognition customtkinter twilio python-dotenv pyttsx3 Pillow numpy
+```
 
